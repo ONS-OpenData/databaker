@@ -5,11 +5,17 @@ import databaker.constants
 from databaker.constants import *      # also brings in template
 import databaker.overrides as overrides       # warning: injects additional class functions into xypath and messytables
 
+from pathlib import PosixPath
+
 # core classes and functionality
 from databaker.jupybakeutils import HDim, HDimConst, ConversionSegment, Ldatetimeunitloose, Ldatetimeunitforce, pdguessforceTIMEUNIT
 from databaker.jupybakecsv import writetechnicalCSV, readtechnicalCSV
 from databaker.jupybakehtml import savepreviewhtml
-from databaker.tableset import GSSExcelTableSet
+
+from databaker.loaders.xlsx import XLSXTableSet
+from databaker.loaders.xls import XLSTableSet
+from databaker.loaders.ods import ODSTableSet
+from databaker.loaders.csv import CSVTableSet
 
 # this lot should be deprecated
 from databaker.jupybakecsv import headersfromwdasegment, extraheaderscheck, checktheconstantdimensions, checksegmentobsvalues
@@ -19,8 +25,20 @@ def loadxlstabs(inputfile, sheetids="*", verbose=True):
     if verbose:
         print("Loading %s which has size %d bytes" % (inputfile, os.path.getsize(inputfile)))
     
-    # OLD LINE: tableset = xypath.loader.table_set(inputfile, extension='xls')
-    tableset = GSSExcelTableSet(filename=inputfile)
+    # TODO - take string name, path or fileobject
+    if type(inputfile) == PosixPath:
+        inputfile = str(inputfile.absolute())
+        
+    if inputfile.endswith(".xlsx"):
+        tableset = XLSXTableSet(filename=inputfile)
+    elif inputfile.endswith(".xls"):
+        tableset = XLSTableSet(filename=inputfile)
+    elif inputfile.endswith(".ods"):
+        tableset = ODSTableSet(filename=inputfile)
+    elif inputfile.endswith(".csv"):
+        tableset = CSVTableSet(filename=inputfile)
+    else:
+        raise ValueError(f"Input files must be of type xls, xlsx, ods, csv. Got {inputfile}")
 
     tabs = list(xypath.loader.get_sheets(tableset, sheetids))
 
