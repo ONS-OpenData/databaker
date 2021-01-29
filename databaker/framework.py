@@ -1,3 +1,4 @@
+import logging
 import os, warnings
 import xypath
 import xypath.loader
@@ -14,8 +15,6 @@ from databaker.jupybakehtml import savepreviewhtml
 
 from databaker.loaders.xlsx import XLSXTableSet
 from databaker.loaders.xls import XLSTableSet
-from databaker.loaders.ods import ODSTableSet
-from databaker.loaders.csv import CSVTableSet
 
 # this lot should be deprecated
 from databaker.jupybakecsv import headersfromwdasegment, extraheaderscheck, checktheconstantdimensions, checksegmentobsvalues
@@ -29,16 +28,20 @@ def loadxlstabs(inputfile, sheetids="*", verbose=True):
     if type(inputfile) == PosixPath:
         inputfile = str(inputfile.absolute())
         
-    if inputfile.endswith(".xlsx"):
-        tableset = XLSXTableSet(filename=inputfile)
-    elif inputfile.endswith(".xls"):
-        tableset = XLSTableSet(filename=inputfile)
-    elif inputfile.endswith(".ods"):
-        tableset = ODSTableSet(filename=inputfile)
-    elif inputfile.endswith(".csv"):
-        tableset = CSVTableSet(filename=inputfile)
-    else:
-        raise ValueError(f"Input files must be of type xls, xlsx, ods, csv. Got {inputfile}")
+    # Fall back on messytables defaults if our local table loaders fail
+    try:
+        if inputfile.endswith(".xlsx"):
+            tableset = XLSXTableSet(filename=inputfile)
+        elif inputfile.endswith(".xls"):
+            tableset = XLSTableSet(filename=inputfile)
+        elif inputfile.endswith(".ods"):
+            raise NotImplementedError('ODS table loader has not been implemented.')
+        elif inputfile.endswith(".csv"):
+            raise NotImplementedError('CSV table loader has not been implemented.')
+    except Exception as err:
+        logging.warning(f'Internal table loader failure with exception:\n\n {str(err)}\n\n. '
+                        'Falling through to default messytables table loader.')
+        tableset = xypath.loader.table_set(inputfile, extension='xls')
 
     tabs = list(xypath.loader.get_sheets(tableset, sheetids))
 
